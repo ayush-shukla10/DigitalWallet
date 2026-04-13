@@ -1,14 +1,36 @@
-# Digital Wallet Application
+# 💰 Digital Wallet System
 
-## Features
+A full-stack Digital Wallet application built using ASP.NET Core, MySQL, and JavaScript.
+
+---
+ Features
+
 - User Registration & Login
+- JWT Authentication
 - Add Money
 - Transfer Money
 - Redeem Points
-- View Balance
-- Transaction History (toggle view)
+- Transaction History
 
-## Tech Stack
-- ASP.NET Core Web API
-- MySQL
-- HTML, CSS, JavaScript
+Tech Stack
+
+- Backend: ASP.NET Core Web API
+- Database: MySQL
+- Frontend: HTML, CSS, JavaScript
+- Authentication: JWT
+
+---
+
+ Security
+
+- Token-based authentication
+- Protected APIs using [Authorize]
+
+---
+
+## ▶️ How to Run
+
+### Backend
+```bash
+cd backend
+dotnet run
