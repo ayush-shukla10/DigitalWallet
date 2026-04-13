@@ -75,6 +75,7 @@ namespace DigitalWallet.Controllers
 
             var receiverWallet = _context.Wallets.FirstOrDefault(w => w.UserId == receiverId);
 
+
             if (receiverWallet == null)
             {
                 receiverWallet = new Wallet
@@ -99,6 +100,7 @@ namespace DigitalWallet.Controllers
                 Amount = amount,
                 Date = DateTime.Now
             };
+
             int earnedPoints = (int)(amount / 100);
 
             var senderPoints = _context.Points.FirstOrDefault(p => p.UserId == senderId);
@@ -122,6 +124,36 @@ namespace DigitalWallet.Controllers
             _context.SaveChanges();
 
             return Ok(transaction);
+        }
+        [HttpPost("redeem")]
+        public IActionResult Redeem(int userId)
+        {
+            // Get user points
+            var userPoints = _context.Points.FirstOrDefault(p => p.UserId == userId);
+
+            //If no points or less than 10
+            if (userPoints == null || userPoints.Points < 10)
+                return BadRequest("Not enough points");
+
+            // Get wallet
+            var wallet = _context.Wallets.FirstOrDefault(w => w.UserId == userId);
+
+            if (wallet == null)
+                return NotFound("Wallet not found");
+
+            // Redeem logic
+            int redeemPoints = 10;
+            decimal reward = redeemPoints * 5;      // add money
+            userPoints.Points -= 10;   // deduct points
+
+            _context.SaveChanges();
+
+            return Ok(new
+            {
+                message = "Redeemed successfully",
+                newBalance = wallet.Balance,
+                remainingPoints = userPoints.Points
+            });
         }
     }
 }

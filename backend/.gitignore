@@ -7,3 +7,4 @@ obj/
 Thumbs.db
 appsettings.json
 appsettings*.json
+.vs/
