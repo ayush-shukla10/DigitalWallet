@@ -68,16 +68,13 @@ namespace DigitalWallet.Controllers
             if (amount <= 0)
                 return BadRequest("Invalid amount");
 
-            // Get sender wallet
             var senderWallet = _context.Wallets.FirstOrDefault(w => w.UserId == senderId);
 
             if (senderWallet == null)
                 return BadRequest("Sender wallet not found");
 
-            // Get receiver wallet
             var receiverWallet = _context.Wallets.FirstOrDefault(w => w.UserId == receiverId);
 
-            // 🔥 AUTO CREATE RECEIVER WALLET
             if (receiverWallet == null)
             {
                 receiverWallet = new Wallet
@@ -92,11 +89,9 @@ namespace DigitalWallet.Controllers
             if (senderWallet.Balance < amount)
                 return BadRequest("Insufficient balance");
 
-            // Transfer logic
             senderWallet.Balance -= amount;
             receiverWallet.Balance += amount;
 
-            // Save transaction
             var transaction = new Transaction
             {
                 SenderId = senderId,
@@ -104,7 +99,6 @@ namespace DigitalWallet.Controllers
                 Amount = amount,
                 Date = DateTime.Now
             };
-            // ⭐ POINTS LOGIC (e.g., 1 point per 100 amount)
             int earnedPoints = (int)(amount / 100);
 
             var senderPoints = _context.Points.FirstOrDefault(p => p.UserId == senderId);
