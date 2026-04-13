@@ -1,5 +1,9 @@
-using Microsoft.EntityFrameworkCore;
 using DigitalWallet;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
+using System.Text;
 
 namespace DigitalWallet
 {
@@ -15,6 +19,7 @@ namespace DigitalWallet
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+
             builder.Services.AddDbContext<AppDbContext>(options =>options.UseMySql(builder.Configuration.GetConnectionString("DefaultConnection"),new MySqlServerVersion(new Version(8, 0, 0))));
             builder.Services.AddCors(options =>
             {
@@ -26,6 +31,20 @@ namespace DigitalWallet
                               .AllowAnyHeader();
                     });
             });
+            var key = "ThisIsMySuperSecretKeyForJwtAuthentication123456789";
+
+            builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = false,
+                    ValidateAudience = false,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key))
+                };
+            });
             var app = builder.Build();
             app.UseCors("AllowAll");
 
@@ -34,7 +53,7 @@ namespace DigitalWallet
             app.UseSwaggerUI();
 
             app.UseHttpsRedirection();
-
+            app.UseAuthentication();
             app.UseAuthorization();
 
 

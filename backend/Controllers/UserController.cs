@@ -1,4 +1,9 @@
-﻿using System.Linq;
+﻿using Microsoft.AspNetCore.Authorization;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using System.Linq;
 using DigitalWallet.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -38,16 +43,36 @@ namespace DigitalWallet.Controllers
             return Ok(user);
         }
         [HttpPost("login")]
-        public IActionResult Login(User login)
+        public IActionResult Login(string email, string password)
         {
-            var user = _context.Users
-                .FirstOrDefault(u => u.Email == login.Email && u.Password == login.Password);
+            var user = _context.Users.FirstOrDefault(u => u.Email == email && u.Password == password);
 
             if (user == null)
-                return Unauthorized("Invalid email or password");
+                return Unauthorized("Invalid credentials");
 
-            return Ok(user);
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("ThisIsMySuperSecretKeyForJwtAuthentication123456789"));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var claims = new[]
+            {
+             new Claim("userId", user.Id.ToString())
+    };
+
+            var token = new JwtSecurityToken(
+                claims: claims,
+                expires: DateTime.Now.AddHours(1),
+                signingCredentials: creds
+            );
+
+            var jwt = new JwtSecurityTokenHandler().WriteToken(token);
+            return Ok(new
+            {
+                token = jwt,
+                userId = user.Id   
+            });
         }
+        [Authorize]
+
         [HttpPost("add-money")]
         public IActionResult AddMoney(int userId, decimal amount)
         {
@@ -75,6 +100,8 @@ namespace DigitalWallet.Controllers
 
             return Ok(wallet);
         }
+        [Authorize]
+
         [HttpPost("transfer")]
         public IActionResult Transfer(int senderId, int receiverId, decimal amount)
         {
@@ -138,6 +165,8 @@ namespace DigitalWallet.Controllers
 
             return Ok(transaction);
         }
+        [Authorize]
+
         [HttpPost("redeem")]
         public IActionResult Redeem(int userId)
         {
@@ -168,6 +197,8 @@ namespace DigitalWallet.Controllers
                 remainingPoints = userPoints.Points
             });
         }
+        [Authorize]
+
         [HttpGet("balance")]
         public IActionResult GetBalance(int userId)
         {
@@ -178,6 +209,8 @@ namespace DigitalWallet.Controllers
 
             return Ok(wallet.Balance);
         }
+        [Authorize]
+
         [HttpGet("transactions")]
         public IActionResult GetTransactions(int userId)
         {

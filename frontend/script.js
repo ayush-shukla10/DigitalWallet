@@ -1,5 +1,12 @@
 const baseUrl = "https://localhost:7296/api/User";
 
+function getAuthHeader() {
+    const token = localStorage.getItem("token");
+    return {
+        "Authorization": "Bearer " + token
+    };
+}
+
 function showLogin() {
   document.getElementById("loginBox").classList.remove("hidden");
   document.getElementById("registerBox").classList.add("hidden");
@@ -77,23 +84,20 @@ function register() {
 }
 
 function login() {
-  const emailVal = document.getElementById("loginEmail").value;
-  const passwordVal = document.getElementById("loginPassword").value;
+  const emailVal = document.getElementById("loginEmail").value.trim();
+  const passwordVal = document.getElementById("loginPassword").value.trim();
 
-  fetch(baseUrl + "/login", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({
-      email: emailVal,
-      password: passwordVal
-    })
+  fetch(`${baseUrl}/login?email=${encodeURIComponent(emailVal)}&password=${encodeURIComponent(passwordVal)}`, {
+    method: "POST"
   })
   .then(res => {
     if (!res.ok) throw new Error("Invalid login");
     return res.json();
   })
   .then(data => {
-    localStorage.setItem("userId", data.id);
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("userId", data.userId);
+
     window.location.href = "dashboard.html";
   })
   .catch(err => {
@@ -102,60 +106,61 @@ function login() {
 }
 
 function addMoney() {
-  const userId = localStorage.getItem("userId");
-  const amount = document.getElementById("amount").value;
+    const userId = localStorage.getItem("userId");
+    const amount = document.getElementById("amount").value;
 
-  fetch(`${baseUrl}/add-money?userId=${userId}&amount=${amount}`, {
-    method: "POST"
-  })
-  .then(res => {
-    if (!res.ok) throw new Error("Failed to add money");
-    return res.json();
-  })
-  .then(() => {
-    showSuccess("Money added successfully");
-    loadBalance();
-    loadTransactions();
-  })
-  .catch(err => showError(err.message));
+    fetch(`${baseUrl}/add-money?userId=${userId}&amount=${amount}`, {
+        method: "POST",
+        headers: getAuthHeader()
+    })
+    .then(res => res.json())
+    .then(() => {
+        showSuccess("Money added");
+        loadBalance();
+        loadTransactions();
+    })
+    .catch(() => showError("Failed"));
 }
 
 function transfer() {
-  const senderId = localStorage.getItem("userId");
-  const receiverId = document.getElementById("receiverId").value;
-  const amount = document.getElementById("tamount").value;
+    const userId = localStorage.getItem("userId");
+    const receiverId = document.getElementById("receiverId").value;
+    const amount = document.getElementById("tamount").value;
 
-  fetch(`${baseUrl}/transfer?senderId=${senderId}&receiverId=${receiverId}&amount=${amount}`, {
-    method: "POST"
-  })
-  .then(res => {
-    if (!res.ok) throw new Error("Transfer failed");
-    return res.json();
-  })
-  .then(() => {
-    showSuccess("Transfer successful");
-    loadBalance();
-    loadTransactions();
-  })
-  .catch(err => showError(err.message));
+    fetch(`${baseUrl}/transfer?senderId=${userId}&receiverId=${receiverId}&amount=${amount}`, {
+        method: "POST",
+        headers: getAuthHeader()
+    })
+    .then(res => res.json())
+    .then(() => {
+        showSuccess("Transfer successful");
+        loadBalance();
+        loadTransactions();
+    })
+    .catch(() => showError("Failed"));
 }
 
 function redeem() {
-  const userId = localStorage.getItem("userId");
+    const userId = localStorage.getItem("userId");
 
-  fetch(`${baseUrl}/redeem?userId=${userId}`, {
-    method: "POST"
-  })
-  .then(res => {
-    if (!res.ok) throw new Error("Not enough points");
-    return res.json();
-  })
-  .then(() => {
-    showSuccess("Redeemed successfully");
-    loadBalance();
-    loadTransactions();
-  })
-  .catch(err => showError(err.message));
+    fetch(`${baseUrl}/redeem?userId=${userId}`, {
+        method: "POST",
+        headers: getAuthHeader()
+    })
+    .then(res => {
+        if (!res.ok) {
+            return res.text().then(err => { throw new Error(err); });
+        }
+        return res.json();
+    })
+    .then(data => {
+        showSuccess(data.message);
+        loadBalance();
+        loadTransactions();
+    })
+    .catch(err => {
+        showError(err.message); 
+    });
 }
 
 function toggleHistory() {
@@ -172,37 +177,38 @@ function toggleHistory() {
 }
 
 function loadBalance() {
-  const userId = localStorage.getItem("userId");
+    const userId = localStorage.getItem("userId");
 
-  fetch(`${baseUrl}/balance?userId=${userId}`)
+    fetch(`${baseUrl}/balance?userId=${userId}`, {
+        headers: getAuthHeader()
+    })
     .then(res => res.json())
     .then(data => {
-      document.getElementById("balance").innerText =
-        "Balance: ₹ " + data;
-    })
-    .catch(() => showError("Failed to load balance"));
+        document.getElementById("balance").innerText = "Balance: ₹ " + data;
+    });
 }
 
 function loadTransactions() {
-  const userId = localStorage.getItem("userId");
+    const userId = localStorage.getItem("userId");
 
-  fetch(`${baseUrl}/transactions?userId=${userId}`)
+    fetch(`${baseUrl}/transactions?userId=${userId}`, {
+        headers: getAuthHeader()
+    })
     .then(res => res.json())
     .then(data => {
-      const list = document.getElementById("history");
-      list.innerHTML = "";
+        const list = document.getElementById("history");
+        list.innerHTML = "";
 
-      data.forEach(t => {
-        const li = document.createElement("li");
-        li.innerText =
-          `From: ${t.senderId} → To: ${t.receiverId} | ₹${t.amount}`;
-        list.appendChild(li);
-      });
-    })
-    .catch(() => showError("Failed to load transactions"));
+        data.forEach(t => {
+            const li = document.createElement("li");
+            li.innerText = `From ${t.senderId} → To ${t.receiverId} | ₹${t.amount}`;
+            list.appendChild(li);
+        });
+    });
 }
 
 function logout() {
-  localStorage.removeItem("userId");
-  window.location.href = "index.html";
+    localStorage.removeItem("token");
+    localStorage.removeItem("userId");
+    window.location.href = "index.html";
 }
