@@ -19,6 +19,19 @@ namespace DigitalWallet.Controllers
         [HttpPost("register")]
         public IActionResult Register(User user)
         {
+            if (string.IsNullOrEmpty(user.Name) ||
+                string.IsNullOrEmpty(user.Email) ||
+                string.IsNullOrEmpty(user.Password))
+            {
+                return BadRequest("All fields are required");
+            }
+
+            var existingUser = _context.Users.FirstOrDefault(u => u.Email == user.Email);
+            if (existingUser != null)
+            {
+                return BadRequest("Email already exists");
+            }
+
             _context.Users.Add(user);
             _context.SaveChanges();
 
@@ -154,6 +167,25 @@ namespace DigitalWallet.Controllers
                 newBalance = wallet.Balance,
                 remainingPoints = userPoints.Points
             });
+        }
+        [HttpGet("balance")]
+        public IActionResult GetBalance(int userId)
+        {
+            var wallet = _context.Wallets.FirstOrDefault(w => w.UserId == userId);
+
+            if (wallet == null)
+                return NotFound("Wallet not found");
+
+            return Ok(wallet.Balance);
+        }
+        [HttpGet("transactions")]
+        public IActionResult GetTransactions(int userId)
+        {
+            var transactions = _context.Transactions
+                .Where(t => t.SenderId == userId || t.ReceiverId == userId)
+                .ToList();
+
+            return Ok(transactions);
         }
     }
 }
