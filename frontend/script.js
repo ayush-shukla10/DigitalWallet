@@ -2,8 +2,14 @@ const baseUrl = "https://localhost:7296/api/User";
 
 function getAuthHeader() {
     const token = localStorage.getItem("token");
+
+    if (!token) {
+        console.error("Token missing. Please login again.");
+        return {};
+    }
+
     return {
-        "Authorization": "Bearer " + token
+        "Authorization": `Bearer ${token}`
     };
 }
 
@@ -44,7 +50,8 @@ window.onload = function () {
 
     const welcome = document.getElementById("welcome");
     if (welcome) {
-      welcome.innerText = "Welcome User ID: " + userId;
+      const name = localStorage.getItem("name");
+      welcome.innerText = "Welcome " + name;
     }
     loadBalance();
     loadTransactions();
@@ -57,53 +64,67 @@ window.onload = function () {
 };
 
 function register() {
-  const nameVal = document.getElementById("name").value;
-  const emailVal = document.getElementById("email").value;
-  const passwordVal = document.getElementById("password").value;
+    const name = document.getElementById("name").value;
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+    const msg = document.getElementById("msg");
 
-  fetch(baseUrl + "/register", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({
-      name: nameVal,
-      email: emailVal,
-      password: passwordVal
+    if (!name || !email || !password) {
+        msg.innerText = "All fields are required";
+        return;
+    }
+    if (password.length < 8) {
+        msg.innerText = "Password must be at least 8 characters";
+        return;
+    }
+
+    fetch(baseUrl + "/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password })
     })
-  })
-  .then(async res => {
-    const text = await res.text();
-    if (!res.ok) throw new Error(text);
-    return text;
-  })
-  .then(() => {
-    document.getElementById("msg").innerText = "Registered successfully ✔";
-    showLogin(); 
-  })
-  .catch(err => {
-    document.getElementById("msg").innerText = err.message;
-  });
+    .then(res => {
+        if (!res.ok) throw new Error("Registration failed");
+        return res.json();
+    })
+    .then(() => {
+        msg.innerText = "Registered successfully";
+    })
+    .catch(err => {
+        msg.innerText = err.message;
+    });
 }
 
 function login() {
-  const emailVal = document.getElementById("loginEmail").value.trim();
-  const passwordVal = document.getElementById("loginPassword").value.trim();
+    const emailVal = document.getElementById("loginEmail").value;
+    const passwordVal = document.getElementById("loginPassword").value;
+    const msg = document.getElementById("msg");
+    if (!emailVal || !passwordVal) {
+        msg.innerText = "Email and password are required";
+        return;
+    }
+    fetch(baseUrl + "/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            email: emailVal,
+            password: passwordVal
+        })
+    })
+    .then(res => {
+        if (!res.ok) throw new Error("Invalid login");
+        return res.json();
+    })
+    .then(data => {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("userId", data.userId);
+        localStorage.setItem("name", data.name);
 
-  fetch(`${baseUrl}/login?email=${encodeURIComponent(emailVal)}&password=${encodeURIComponent(passwordVal)}`, {
-    method: "POST"
-  })
-  .then(res => {
-    if (!res.ok) throw new Error("Invalid login");
-    return res.json();
-  })
-  .then(data => {
-    localStorage.setItem("token", data.token);
-    localStorage.setItem("userId", data.userId);
-
-    window.location.href = "dashboard.html";
-  })
-  .catch(err => {
-    document.getElementById("msg").innerText = err.message;
-  });
+        window.location.href = "dashboard.html";
+    })
+    .catch(err => {
+        msg.innerText = err.message;
+    });
 }
 
 function addMoney() {
@@ -165,16 +186,25 @@ function redeem() {
 }
 
 function toggleHistory() {
-  const history = document.getElementById("history");
-  const title = history.previousElementSibling;
+    const history = document.getElementById("history");
+    const title = history.previousElementSibling;
+    const btn = document.getElementById("showMoreBtn");
 
-  if (history.classList.contains("hidden")) {
-    history.classList.remove("hidden");
-    title.innerText = "Transaction History ⬆";
-  } else {
-    history.classList.add("hidden");
-    title.innerText = "Transaction History ⬇";
-  }
+    if (history.classList.contains("hidden")) {
+        history.classList.remove("hidden");
+        title.innerText = "Transaction History ↑";
+
+        if (btn && allTransactions.length > visibleCount) {
+            btn.classList.remove("hidden");
+        }
+    } else {
+        history.classList.add("hidden");
+        title.innerText = "Transaction History ↓";
+
+        if (btn) {
+            btn.classList.add("hidden");
+        }
+    }
 }
 
 function loadBalance() {
@@ -189,6 +219,9 @@ function loadBalance() {
     });
 }
 
+let allTransactions = [];
+let visibleCount = 10;
+
 function loadTransactions() {
     const userId = localStorage.getItem("userId");
 
@@ -197,15 +230,53 @@ function loadTransactions() {
     })
     .then(res => res.json())
     .then(data => {
-        const list = document.getElementById("history");
-        list.innerHTML = "";
+        allTransactions = data.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-        data.forEach(t => {
-            const li = document.createElement("li");
-            li.innerText = `From ${t.senderId} → To ${t.receiverId} | ₹${t.amount}`;
-            list.appendChild(li);
-        });
+        renderTransactions();
     });
+}
+
+function renderTransactions() {
+    const list = document.getElementById("history");
+    list.innerHTML = "";
+
+    const userName = localStorage.getItem("name");
+
+    allTransactions.slice(0, visibleCount).forEach(t => {
+        const li = document.createElement("li");
+
+        const date = new Date(t.date).toLocaleString();
+        const type = (t.senderName === userName) ? "Sent" : "Received";
+
+        li.innerText = `${type}: ${t.senderName} → ${t.receiverName} | ₹${t.amount} | ${date}`;
+
+        li.style.color = (type === "Sent") ? "red" : "green";
+        li.style.listStyle = "none";
+        li.style.padding = "8px";
+        li.style.borderBottom = "1px solid #ddd";
+
+        list.appendChild(li);
+    });
+
+    const btn = document.getElementById("showMoreBtn");
+    if (btn) {  
+    if (visibleCount >= allTransactions.length) {
+        btn.classList.add("hidden");
+    } else {
+        btn.classList.remove("hidden");
+    }
+}
+}
+function showMore() {
+    const history = document.getElementById("history");
+    const title = history.previousElementSibling;
+    if (history.classList.contains("hidden")) {
+        history.classList.remove("hidden");
+        title.innerText = "Transaction History ↑";
+    }
+
+    visibleCount += 10;
+    renderTransactions();
 }
 
 function loadPoints() {
@@ -221,6 +292,37 @@ function loadPoints() {
     .catch(() => {
         document.getElementById("points").innerText = "Points: Error";
     });
+}
+
+function togglePassword(inputId, icon) {
+    const input = document.getElementById(inputId);
+
+    if (input.type === "password") {
+        input.type = "text";
+        icon.innerText = "🙈";
+    } else {
+        input.type = "password";
+        icon.innerText = "👁️";
+    }
+}
+function loadProfile() {
+    fetch(`${baseUrl}/profile`, {
+        headers: getAuthHeader()
+    })
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById("pUserId").innerText = data.userId;
+        document.getElementById("pName").innerText = data.name;
+        document.getElementById("pEmail").innerText = data.email;
+    });
+}
+function toggleProfile() {
+    const profile = document.getElementById("profile");
+
+    profile.classList.toggle("hidden");
+    if (!profile.classList.contains("hidden")) {
+        loadProfile();
+    }
 }
 
 function logout() {

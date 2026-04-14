@@ -30,6 +30,10 @@ namespace DigitalWallet.Controllers
             {
                 return BadRequest("All fields are required");
             }
+            if (user.Password.Length < 8)
+            {
+                return BadRequest("Password must be at least 8 characters long");
+            }
 
             var existingUser = _context.Users.FirstOrDefault(u => u.Email == user.Email);
             if (existingUser != null)
@@ -43,20 +47,25 @@ namespace DigitalWallet.Controllers
             return Ok(user);
         }
         [HttpPost("login")]
-        public IActionResult Login(string email, string password)
+        public IActionResult Login([FromBody] User loginUser)
         {
-            var user = _context.Users.FirstOrDefault(u => u.Email == email && u.Password == password);
+            var user = _context.Users.FirstOrDefault(u =>
+                u.Email == loginUser.Email &&
+                u.Password == loginUser.Password
+            );
 
             if (user == null)
                 return Unauthorized("Invalid credentials");
 
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("ThisIsMySuperSecretKeyForJwtAuthentication123456789"));
+            var key = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes("ThisIsMySuperSecretKeyForJwtAuthentication123456789"));
+
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var claims = new[]
             {
-             new Claim("userId", user.Id.ToString())
-    };
+          new Claim("userId", user.Id.ToString())
+          };
 
             var token = new JwtSecurityToken(
                 claims: claims,
@@ -65,12 +74,15 @@ namespace DigitalWallet.Controllers
             );
 
             var jwt = new JwtSecurityTokenHandler().WriteToken(token);
+
             return Ok(new
             {
                 token = jwt,
-                userId = user.Id   
+                userId = user.Id,
+                name = user.Name
             });
         }
+
         [Authorize]
 
         [HttpPost("add-money")]
@@ -231,16 +243,55 @@ namespace DigitalWallet.Controllers
 
             return Ok(new { points = userPoints.Points });
         }
-          [Authorize]
+        [Authorize]
 
         [HttpGet("transactions")]
         public IActionResult GetTransactions(int userId)
         {
             var transactions = _context.Transactions
                 .Where(t => t.SenderId == userId || t.ReceiverId == userId)
+                .Select(t => new
+                {
+                    senderName = _context.Users
+                        .Where(u => u.Id == t.SenderId)
+                        .Select(u => u.Name)
+                        .FirstOrDefault(),
+
+                    receiverName = _context.Users
+                        .Where(u => u.Id == t.ReceiverId)
+                        .Select(u => u.Name)
+                        .FirstOrDefault(),
+
+                    amount = t.Amount,
+                    date = t.Date
+                })
                 .ToList();
 
             return Ok(transactions);
+        }
+        [Authorize]
+
+        [HttpGet("profile")]
+        public IActionResult GetProfile()
+        {
+            var userIdClaim = User.FindFirst("userId");
+
+            if (userIdClaim == null)
+                return Unauthorized();
+
+            int userId = int.Parse(userIdClaim.Value);
+
+            var user = _context.Users.FirstOrDefault(u => u.Id == userId);
+
+            if (user == null)
+                return NotFound("User not found");
+
+            return Ok(new
+            {
+                userId = user.Id,
+                name = user.Name,
+                email = user.Email
+            });
         }
     }
 }

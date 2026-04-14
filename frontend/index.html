@@ -13,12 +13,12 @@
   input, button {
     padding: 10px;
     margin: 8px;
-    width: 250px;
     border-radius: 6px;
     border: 1px solid #ccc;
   }
 
   button {
+    width: 300px;
     background: #2d8cff;
     color: white;
     border: none;
@@ -27,6 +27,27 @@
   button:hover {
     background: #1c6ed5;
   }
+  .input-box {
+    width: 300px;
+    margin: 12px auto;
+    position: relative;
+}
+.input-box input {
+    width: 100%;
+    padding: 10px 45px 10px 10px;  
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;  
+}
+.eye-icon {
+    position: absolute;
+    right: 12px;      
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    font-size: 16px;
+}
+
   .hidden {
   display: none;
 }
@@ -42,16 +63,41 @@
 
 <div id="loginBox">
   <h3>Login</h3>
-  <input id="loginEmail" placeholder="Email"><br>
-  <input id="loginPassword" placeholder="Password"><br>
+
+  <div class="input-box">
+    <input id="loginEmail" placeholder="Email">
+  </div>
+
+  <div class="input-box" style="position: relative;">
+    <input type="password" id="loginPassword" placeholder="Password">
+
+    <span onclick="togglePassword('loginPassword', this)" class="eye-icon">
+      👁️
+    </span>
+  </div>
+
   <button onclick="login()">Login</button>
 </div>
 
 <div id="registerBox" class="hidden">
   <h3>Register</h3>
-  <input id="name" placeholder="Name"><br>
-  <input id="email" placeholder="Email"><br>
-  <input id="password" placeholder="Password"><br>
+
+  <div class="input-box">
+    <input id="name" placeholder="Name">
+  </div>
+
+  <div class="input-box">
+    <input id="email" placeholder="Email">
+  </div>
+
+  <div class="input-box" style="position: relative;">
+    <input type="password" id="password" placeholder="Password">
+
+    <span onclick="togglePassword('password', this)" class="eye-icon">
+      👁️
+    </span>
+  </div>
+
   <button onclick="register()">Register</button>
 </div>
 
