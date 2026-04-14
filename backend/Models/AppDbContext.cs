@@ -13,5 +13,6 @@ namespace DigitalWallet
         public DbSet<Wallet> Wallets { get; set; }
         public DbSet<Transaction> Transactions { get; set; }
         public DbSet<Point> Points { get; set; }
+        
     }
 }

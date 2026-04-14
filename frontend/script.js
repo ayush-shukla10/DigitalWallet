@@ -48,6 +48,7 @@ window.onload = function () {
     }
     loadBalance();
     loadTransactions();
+    loadPoints();
   }
 
   if (window.location.pathname.includes("index.html") || window.location.pathname === "/") {
@@ -204,6 +205,21 @@ function loadTransactions() {
             li.innerText = `From ${t.senderId} → To ${t.receiverId} | ₹${t.amount}`;
             list.appendChild(li);
         });
+    });
+}
+
+function loadPoints() {
+    const userId = localStorage.getItem("userId");
+
+    fetch(`${baseUrl}/points?userId=${userId}`, {
+        headers: getAuthHeader()
+    })
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById("points").innerText = "Points: " + data.points;
+    })
+    .catch(() => {
+        document.getElementById("points").innerText = "Points: Error";
     });
 }
 
