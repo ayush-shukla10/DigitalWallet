@@ -73,6 +73,7 @@ function register() {
         msg.innerText = "All fields are required";
         return;
     }
+
     if (password.length < 8) {
         msg.innerText = "Password must be at least 8 characters";
         return;
@@ -83,12 +84,15 @@ function register() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password })
     })
-    .then(res => {
-        if (!res.ok) throw new Error("Registration failed");
+    .then(async res => {
+        if (!res.ok) {
+            const errorText = await res.text();
+            throw new Error(errorText);
+        }
         return res.json();
     })
     .then(() => {
-        msg.innerText = "Registered successfully";
+        msg.innerText = "Registered successfully ✔";
     })
     .catch(err => {
         msg.innerText = err.message;
