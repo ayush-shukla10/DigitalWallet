@@ -219,17 +219,17 @@ namespace DigitalWallet.Controllers
                 newBalance = wallet.Balance
             });
         }
-          [Authorize]
+       [Authorize]
+       [HttpGet("balance")]
+       public IActionResult GetBalance(int userId)
+       {
+       var wallet = _context.Wallets.FirstOrDefault(w => w.UserId == userId);
 
-        [HttpGet("balance")]
-        public IActionResult GetBalance(int userId)
+        if (wallet == null)
         {
-            var wallet = _context.Wallets.FirstOrDefault(w => w.UserId == userId);
-
-            if (wallet == null)
-                return NotFound("Wallet not found");
-
-            return Ok(wallet.Balance);
+          return Ok(0); 
+          }
+         return Ok(wallet.Balance);
         }
         [Authorize]
 
