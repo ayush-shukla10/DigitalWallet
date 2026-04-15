@@ -85,7 +85,7 @@ DigitalWallet/
 | GET    | /api/User/balance      | Get balance         |
 | GET    | /api/User/transactions | Transaction history |
 | GET    | /api/User/points       | Get reward points   |
-
+| GET    | /api/User/profile      | Get user profile    | 
 ---
 
 ## 🧪 Testing
