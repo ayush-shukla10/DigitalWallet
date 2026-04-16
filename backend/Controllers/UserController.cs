@@ -119,13 +119,7 @@ namespace DigitalWallet.Controllers
         {
             if (amount <= 0)
                 return BadRequest("Invalid amount");
-            var receiver = _context.Users.FirstOrDefault(u => u.Id == receiverId);
-
-            if (receiver == null)
-             {
-               return BadRequest("Receiver does not exist");
-             }    
-
+           
             var senderWallet = _context.Wallets.FirstOrDefault(w => w.UserId == senderId);
 
             if (senderWallet == null)
@@ -134,9 +128,15 @@ namespace DigitalWallet.Controllers
             var receiverWallet = _context.Wallets.FirstOrDefault(w => w.UserId == receiverId);
             
             if (receiverWallet == null)
-              {
-              return BadRequest("Receiver wallet not found");
-               }
+        {
+             receiverWallet = new Wallet
+          {
+              UserId = receiverId,
+              Balance = 0
+          };
+
+             _context.Wallets.Add(receiverWallet);
+           }   
 
             if (senderWallet.Balance < amount)
                 return BadRequest("Insufficient balance");
